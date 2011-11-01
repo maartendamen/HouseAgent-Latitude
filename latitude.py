@@ -42,8 +42,6 @@ class LatitudeWrapper():
         self.coordinator_host = config.get('coordinator', 'host')
         self.coordinator_port = config.getint('coordinator', 'port')
         self.id = config.get('general', 'id')
-        
-        self.report_values = config._sections['report_values']
 
     def get_locations(self):
         '''
