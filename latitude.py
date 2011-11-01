@@ -7,6 +7,8 @@ import json, pickle
 import datetime
 from houseagent.plugins import pluginapi
 import ConfigParser
+import os
+from houseagent import config_path
 
 class LatitudeWrapper():
     '''
@@ -14,13 +16,34 @@ class LatitudeWrapper():
     '''
     def __init__(self):
         callbacks = {'custom': self.cb_custom}
-        self.pluginapi = pluginapi.PluginAPI('547b0e75-2cc2-484b-88ba-aa53742b0b8f', 'Latitude', **callbacks)
+        self.get_configurationparameters()
+        self.pluginapi = pluginapi.PluginAPI(self.id, 'Latitude', 
+                                             broker_host=self.coordinator_host, 
+                                             broker_port=self.coordinator_port, **callbacks)
 
         self.get_accounts()        
         self.get_locations()
         self.latitude = Latitude(self)
 
         task.deferLater(reactor, 1.0, self.pluginapi.ready)
+
+    def get_configurationparameters(self):
+        '''
+        This function parses configuration parameters from the latitude.conf file.
+        '''
+        config_file = os.path.join(config_path, 'latitude', 'latitude.conf')
+        
+        config = ConfigParser.RawConfigParser()
+        if os.path.exists(config_file):
+            config.read(config_file)
+        else:
+            config.read('latitude.conf')
+        
+        self.coordinator_host = config.get('coordinator', 'host')
+        self.coordinator_port = config.getint('coordinator', 'port')
+        self.id = config.get('general', 'id')
+        
+        self.report_values = config._sections['report_values']
 
     def get_locations(self):
         '''
@@ -247,6 +270,8 @@ class Latitude():
             pass
        
         if account.latitude and account.longitude:
+            location = None
+            
             for location, data in self.wrapper.locations.iteritems():
                 loc1 = account.latitude, account.longitude
                 loc2 = float(data[0]), float(data[1])
