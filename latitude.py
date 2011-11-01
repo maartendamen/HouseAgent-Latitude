@@ -9,8 +9,10 @@ from houseagent.plugins import pluginapi
 import ConfigParser
 
 class LatitudeWrapper():
+    '''
+    This is a wrapper class to handle the connection to the coordinator.
+    '''
     def __init__(self):
-        
         callbacks = {'custom': self.cb_custom}
         self.pluginapi = pluginapi.PluginAPI('547b0e75-2cc2-484b-88ba-aa53742b0b8f', 'Latitude', **callbacks)
 
@@ -21,6 +23,9 @@ class LatitudeWrapper():
         task.deferLater(reactor, 1.0, self.pluginapi.ready)
 
     def get_locations(self):
+        '''
+        This function gets locations information from the Latitude configuration file.
+        '''
         self.locations = {}
         config = ConfigParser.RawConfigParser()
         config.read('latitude.conf')
@@ -31,6 +36,9 @@ class LatitudeWrapper():
             self.locations[key] = pickle.loads(item)    
 
     def get_accounts(self):
+        '''
+        This function gets account information from the configuration file.
+        '''
         self.accounts = []
         config = ConfigParser.RawConfigParser()
         config.read('latitude.conf')
@@ -46,9 +54,12 @@ class LatitudeWrapper():
             self.accounts.append(acc)
 
     def cb_custom(self, action, parameters):
-        
-        print action, parameters
-        
+        '''
+        This function is a callback handler for custom commands
+        received from the coordinator.
+        @param action: the custom action to handle
+        @param parameters: the parameters passed with the custom action
+        '''        
         # Location management
         if action == 'get_locations':
             d = defer.Deferred()
@@ -148,6 +159,14 @@ class LatitudeWrapper():
             return d      
         
 class Latitude():
+    '''
+    This class handles the connection to the HouseAgent Latitude service.
+    In order to use this service you first have to grant permission to HouseAgent
+    to use your location data.
+    
+    To do this, visit: https://ha-latitude.appspot.com until you see a JSON result of your
+    current location.
+    '''
     AUTH_URI = 'https://www.google.com/accounts/ClientLogin'
     BRIDGE_API = 'https://ha-latitude.appspot.com'
     APP_NAME = 'ha-latitude'
@@ -159,18 +178,28 @@ class Latitude():
         self.start_update_tasks()
         
     def start_update_tasks(self):
+        '''
+        Start looping update tasks for each account.
+        '''
         for acc in self.wrapper.accounts:
             l = task.LoopingCall(self.update, acc)
             l.start(float(acc.refreshtime))
             self.update_tasks.append(l)
         
     def restart_update_tasks(self):
+        '''
+        Trigger a restart of update tasks.
+        '''
         for t in self.update_tasks:
             t.stop()
         
         self.start_update_tasks()
             
     def update(self, account):
+        '''
+        Update the Latitude location information for a specific account.
+        @param account: the account used to update the location information.
+        '''
         if not account.token:
             self.get_token(account)
         else:
@@ -178,6 +207,10 @@ class Latitude():
 
     @inlineCallbacks
     def get_token(self, account):
+        '''
+        Get an authentication token for the specified account.
+        @param account: the account to get the token for
+        '''
         authreq_data = urllib.urlencode({ "Email":   account.username,
                                           "Passwd":  account.password,
                                           "service": "ah",
@@ -196,6 +229,10 @@ class Latitude():
         
     @inlineCallbacks
     def get_latitudedata(self, account):               
+        '''
+        Get current latitude data for the specified account.
+        @param account: the account to get infromation for
+        '''
         serv_args = {}
         serv_args['continue'] = self.BRIDGE_API
         serv_args['auth']     = account.token
@@ -228,6 +265,10 @@ class Latitude():
     
     @inlineCallbacks
     def reverse_geocode(self, account):
+        '''
+        This function is used to get reverse geocode information for an unknown address.
+        @param account: the account to get the reverse geocode information for
+        '''
         geocode_url = 'http://maps.google.com/maps/geo?q=%s,%s6&output=json' % (account.latitude, account.longitude)
         response = yield getPage(geocode_url)
         response = json.loads(response)
@@ -264,12 +305,11 @@ class Latitude():
         c = 2.0 * atan2(sqrt(a), sqrt(1.0-a))
         km = 6371.0 * c
         return km
-
-    def is_within_distance(self, loc1, loc2, distance):
-        if self.get_distance_by_haversine(loc1, loc2) <= distance: return True
-        else: return False
     
 class LatitudeAccount():
+    '''
+    This is a skeleton class to hold all the information about a Latitude account.
+    '''
     def __init__(self, username, password, device_id):
         self.username = username
         self.password = password
