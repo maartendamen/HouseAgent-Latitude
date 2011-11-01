@@ -1,0 +1,14 @@
+<items>
+	<item name="Latitude" url="#latitude" image="/latitude_images/icon.png">
+		<subitem>
+			<name>Latitude locations</name>
+			<url>/latitude_locations</url>
+			<description>Use this page to manage known latitude locations, such as 'home', 'work' etc.</description>
+		</subitem>
+        <subitem>
+            <name>Latitude accounts</name>
+            <url>/latitude_accounts</url>
+            <description>Use this page to manage latitude accounts.</description>
+        </subitem>
+	</item>
+</items>
