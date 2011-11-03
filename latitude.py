@@ -1,6 +1,6 @@
 import urllib
 from twisted.web.client import getPage
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor, task, defer
 from math import sin, cos, atan2, sqrt, pi
 import json, pickle
@@ -245,7 +245,6 @@ class Latitude():
         auth_resp_dict = dict(x.split("=")
                       for x in response.split("\n") if x)
         account.token = auth_resp_dict["Auth"]
-        print "Received token:", account.token
         self.get_latitudedata(account)
         
     @inlineCallbacks
@@ -270,19 +269,17 @@ class Latitude():
         if account.latitude and account.longitude:
             location = None
             
-            for location, data in self.wrapper.locations.iteritems():
+            for loc, data in self.wrapper.locations.iteritems():
                 loc1 = account.latitude, account.longitude
                 loc2 = float(data[0]), float(data[1])
-                print 'loc1=', loc1
-                print 'loc2=', loc2
-                print "distance=", self.get_distance_by_haversine(loc1, loc2)
-                if self.get_distance_by_haversine(loc1, loc2) < account.proximity:
-                    location = location
+
+                if self.get_distance_by_haversine(loc1, loc2) < float(account.proximity):
+                    location = loc
                     break
                 
             if not location:
-                location = self.reverse_geocode(account)
-            
+                location = yield self.reverse_geocode(account)
+
             values = {'Current location': location}
             self.wrapper.pluginapi.value_update(account.username, values)
     
@@ -297,8 +294,7 @@ class Latitude():
         response = json.loads(response)
         location = response['Placemark'][0]['address']
         
-        print response        
-        print location
+        returnValue(location)
         
     def get_distance_by_haversine(self, loc1, loc2):
         '''
